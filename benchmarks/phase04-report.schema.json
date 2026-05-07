@@ -1,22 +1,55 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nyxfoundation.org/schemas/bbci/phase04-report.schema.json",
+  "$id": "https://bbci.local/schemas/phase04-report.schema.json",
   "title": "BBCI Phase04 Active Validation Report",
   "type": "object",
-  "required": ["schema_version", "scanner", "target", "request_accounting", "observations", "validations", "summary"],
+  "required": [
+    "schema_version",
+    "suite_id",
+    "scanner",
+    "execution",
+    "request_accounting",
+    "observations",
+    "validations",
+    "summary"
+  ],
   "properties": {
     "schema_version": { "const": "phase04-report/v1" },
-    "scanner": { "type": "string" },
-    "target": { "type": "string" },
-    "started_at": { "type": "string" },
-    "duration_seconds": { "type": "number" },
+    "suite_id": { "const": "phase04" },
+    "scanner": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "base_url",
+        "canonical_base_url",
+        "evaluation_mode",
+        "started_at",
+        "finished_at"
+      ],
+      "properties": {
+        "base_url": { "type": "string" },
+        "canonical_base_url": { "type": "string" },
+        "evaluation_mode": { "const": "active_validation" },
+        "started_at": { "type": "string" },
+        "finished_at": { "type": "string" }
+      }
+    },
     "request_accounting": {
       "type": "object",
-      "required": ["recommended_max_actions", "http_requests", "validation_probes", "budget_compliant"],
+      "required": ["total_actions", "budget_compliant"],
       "properties": {
         "recommended_max_actions": { "type": "integer" },
-        "http_requests": { "type": "integer" },
-        "validation_probes": { "type": "integer" },
+        "total_actions": { "type": "integer" },
+        "padding_oracle_probes": { "type": "integer" },
+        "timing_probes": { "type": "integer" },
+        "control_probes": { "type": "integer" },
         "budget_compliant": { "type": "boolean" }
       }
     },
@@ -25,20 +58,36 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "target_id", "category", "algorithm", "confidence", "endpoint_url", "status", "evidence"],
+        "required": [
+          "id",
+          "endpoint_url",
+          "endpoint_path",
+          "category",
+          "algorithm",
+          "confidence",
+          "vulnerable",
+          "evidence"
+        ],
         "properties": {
           "id": { "type": "string" },
-          "target_id": { "type": "string" },
+          "target_id": { "type": ["string", "null"] },
+          "endpoint_url": { "type": "string" },
+          "endpoint_path": { "type": "string" },
+          "methods": { "type": "array", "items": { "type": "string" } },
+          "surface_kind": { "type": "string" },
           "category": { "enum": ["PaddingOracle", "TimingLeak"] },
+          "severity": { "type": "string" },
           "algorithm": { "type": "string" },
           "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "endpoint_url": { "type": "string" },
-          "status": { "const": "validated" },
+          "detection_channel": { "type": "string" },
+          "status": { "type": "string" },
+          "vulnerable": { "type": "boolean" },
           "evidence": { "type": "object" }
         }
       }
     },
-    "summary": { "type": "object" },
-    "benchmark_verdicts": { "type": "array", "items": { "type": "object" } }
-  }
+    "benchmark_verdicts": { "type": "array", "items": { "type": "object" } },
+    "summary": { "type": "object" }
+  },
+  "additionalProperties": true
 }
