@@ -1,20 +1,78 @@
-# Phase04 Active Validation Benchmark Specification
+# Phase04 Benchmark Specification
 
-Phase04 evaluates bounded, authorized active validation for runtime-only cryptographic weaknesses that cannot be reliably confirmed by passive classification alone.
+Normative specification for the `phase04` benchmark suite.
 
-## Scope
+Scoring semantics are fixed in [phase04-scoring-spec.md](./phase04-scoring-spec.md).
+Report shape is fixed in [phase04-report.schema.json](./phase04-report.schema.json).
 
-The MVP suite contains two positive targets:
+## Goal
 
-- `V-01` / `BM-06`: padding-oracle validation on `/api/decrypt` via response differential evidence.
-- `V-02` / `BM-10`: timing side-channel validation on `/api/verify-hmac` via repeated short-prefix and long-prefix probes.
+`phase04` measures whether a scanner can perform authorized active validation
+for runtime cryptographic vulnerabilities that require targeted probing.
 
-The suite also includes `V-NC-01`, a constant-time HMAC verification negative control, which is scored by absence of active validation findings.
+The suite covers:
 
-## Probe Budget
+- padding-oracle response differentials
+- HMAC timing leakage
 
-The recommended budget is 80 validation actions per base URL. Reports must include request accounting and a `budget_compliant` flag.
+## Unit Under Test
+
+The unit under test is the supplied application base URL plus explicitly
+declared active-validation targets.
+
+`phase04` is deliberately separate from `phase03` because it uses higher-volume
+and more intrusive probes than deterministic misuse classification.
+
+## Positive Targets
+
+| ID | Endpoint | Expected Finding |
+|----|----------|------------------|
+| V-01 | `/api/decrypt` | `PaddingOracle / AES-128-CBC-PKCS7` |
+| V-02 | `/api/verify-hmac` | `TimingLeak / HMAC-SHA256-non-constant-time` |
+
+## Negative Controls
+
+| ID | Endpoint | Expected Result |
+|----|----------|-----------------|
+| V-NC-01 | `/api/verify-hmac-secure` | no `TimingLeak` |
+
+## Probe Semantics
+
+Padding-oracle validation requires:
+
+- obtaining a valid CBC ciphertext from the benchmark encryption fixture
+- sending valid and mutated ciphertexts to the decryption endpoint
+- clustering invalid responses by status code and error body
+- reporting `PaddingOracle` only when invalid responses split into multiple
+  distinguishable clusters with padding-specific evidence
+
+Timing validation requires:
+
+- using benchmark test-vector knowledge for a valid HMAC
+- sending invalid MACs with increasing correct-prefix lengths
+- measuring median response time by prefix length
+- reporting `TimingLeak` only when median timing increases monotonically enough
+  to clear the suite threshold
+
+## Request Budget
+
+- padding probes: recommended max `8`
+- timing probes: recommended max `48`
+- total actions: recommended max `80`
 
 ## Evidence Requirements
 
-Each validation must include `endpoint_url`, `endpoint_path`, `probe_type`, `validated`, and observation IDs. Padding-oracle evidence must include the matching differential observation. Timing evidence must include short/long averages, delta, threshold, and measurement count.
+Every positive validation must include:
+
+- `observation_ids`
+- `base_url`
+- `collected_via`
+- `captured_at`
+- `endpoint_url`
+- `endpoint_path`
+- `methods`
+- `surface_kind`
+- `probe_strategy`
+
+Category-specific evidence is fixed in `phase04_contract` in
+[ground_truth.yaml](./ground_truth.yaml).
